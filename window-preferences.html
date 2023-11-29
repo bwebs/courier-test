@@ -16,22 +16,22 @@ label {
   <script>
     const form = document.getElementById("form-data");
 
-form.addEventListener("submit", async function (e) {
-  e.preventDefault();
-  const data = new FormData(e.currentTarget);
-  console.log(window.courier.preferences)
-  await window.courier.init({
-    clientKey: data.get("clientKey"),
-    userId: data.get("userId")
-  });
-  const recipient_pref = await window.courier.preferences.getRecipientPrefences()
-  console.log({recipient_pref})
-});
-
-addEventListener("load", (event) => {
-  const s = document.getElementById("curr");
-  curr.innerHTML = window.location.origin;
-});
+    form.addEventListener("submit", async function (e) {
+      e.preventDefault();
+      const data = new FormData(e.currentTarget);
+      console.log(window.courier.preferences)
+      await window.courier.init({
+        clientKey: data.get("clientKey"),
+        userId: data.get("userId")
+      });
+      const recipient_pref = await window.courier.preferences.getRecipientPrefences()
+      console.log({recipient_pref})
+    });
+    
+    addEventListener("load", (event) => {
+      const s = document.getElementById("curr");
+      curr.innerHTML = window.location.origin;
+    });
   </script>
 </head>
 
