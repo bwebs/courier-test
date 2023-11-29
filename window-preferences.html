@@ -1,0 +1,64 @@
+<html>
+
+<head>
+  <style>
+#code-container {
+  background: lightgrey;
+  height: 500px;
+  width: 500px;
+}
+label {
+  display: inline-block;
+  width: 150px;
+  text-align: right;
+}
+  </style>
+  <script>
+    const form = document.getElementById("form-data");
+
+form.addEventListener("submit", async function (e) {
+  e.preventDefault();
+  const data = new FormData(e.currentTarget);
+  console.log(window.courier.preferences)
+  await window.courier.init({
+    clientKey: data.get("clientKey"),
+    userId: data.get("userId")
+  });
+  const recipient_pref = await window.courier.preferences.getRecipientPrefences()
+  console.log({recipient_pref})
+});
+
+addEventListener("load", (event) => {
+  const s = document.getElementById("curr");
+  curr.innerHTML = window.location.origin;
+});
+  </script>
+</head>
+
+<body>
+  <p><i>Add <span id="curr"></span> to the list of Approved Domains on your <a href="https://app.courier.com/integrations/catalog/courier">Courier integration</a> page.
+      <form id="form-data">
+        <div>
+          <label>Client Key</label>
+          <input name="clientKey">
+        </div>
+        <div>
+          <label>User ID</label>
+          <input name="userId">
+        </div>
+        <div>
+          <label>Tenant ID (Optional)</label>
+          <input name="tenantId">
+        </div>
+        <button type="submit">Get Preferences</button>
+      </form>
+      <div>
+        <label>Preferences</label><br>
+      </div>
+
+      <div id="code-container">
+        <code id="code-block" />
+      </div>
+      <script src="https://courier-components-xvdza5.s3.amazonaws.com/v4.6.0.js"></script>
+      </body>
+        </html>
