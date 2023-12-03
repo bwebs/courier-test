@@ -24,13 +24,13 @@
         console.log("Courier loaded!");
         window.courier.on("*", (payload) => console.log(payload));
         window.courier.on(
-          "preferences/FETCH_PREFERENCE_PAGE/DONE",
+          "preferences/fetch_preference_page/done",
           (payload) => {
             setPreferencesBlock("page", payload);
           }
         );
         window.courier.on(
-          "preferences/FETCH_RECIPIENT_PREFERENCES/DONE",
+          "preferences/fetch_recipient_preferences/done",
           (payload) => {
             setPreferencesBlock("recipient", payload);
             const updateableItems = document.getElementById("updateable-items");
@@ -56,7 +56,8 @@
                           return p;
                         },
                         {
-                          tenantId: (tenantId && tenantId.length) ? tenantId : undefined,
+                          tenantId:
+                            tenantId && tenantId.length ? tenantId : undefined,
                           status: "OPTED_IN",
                           hasCustomRouting: false,
                           digestSchedule: "",
@@ -74,18 +75,20 @@
           }
         );
         window.courier.on(
-          "preferences/UPDATE_RECIPIENT_PREFERENCES/DONE",
+          "preferences/update_recipient_preferences/done",
           () => {
             const data = getFormData();
+            const tenantId = data.get("tenantId");
             if (window.refresh_preferences_page) {
               window.courier.init({
                 clientKey: data.get("clientKey"),
                 userId: data.get("userId"),
-                tenantId: data.get("tenantId"),
+                tenantId: tenantId && tenantId.length ? tenantId : undefined,
               });
             } else {
-              window.courier.preferences.fetchRecipientPreferences();
-              window.courier.preferences.fetchPreferencePage();
+              window.courier.preferences.fetchRecipientPreferences(tenantId && tenantId.length ? tenantId : undefined);
+              // TODO - include draft preferences
+              window.courier.preferences.fetchPreferencePage(tenantId && tenantId.length ? tenantId : undefined);
             }
             window.refresh_preferences_page = false;
           }
@@ -101,7 +104,7 @@
         padding: 1rem;
       }
       button {
-        background-color: #9121C2;
+        background-color: #9121c2;
         border: none;
         padding: 0.5rem;
         cursor: pointer;
@@ -195,7 +198,8 @@
           </i>
         </p>
         <p>
-          This page is for demonstration and debugging purposes only, consider using
+          This page is for demonstration and debugging purposes only, consider
+          using
           <a href="https://www.courier.com/docs/platform/inbox/authentication/"
             >JWT or HMAC</a
           >
@@ -207,12 +211,12 @@
           <label class="form-label">Client Key</label>
           <input
             name="clientKey"
-            value="N2NmZTM1NzQtNzVkOC00NDNmLTg5MmMtYjI2MTBmMWM5MTk3"
+            placeholder="N2NmZTM1NzQtNzVkOC00..."
           />
         </div>
         <div>
           <label class="form-label">User ID</label>
-          <input name="userId" value="test" />
+          <input name="userId" palceholder="test" />
         </div>
         <div>
           <label class="form-label">Tenant ID (Optional)</label>
@@ -254,8 +258,8 @@
         </div>
       </div>
     </div>
-    <script src="http://localhost:9000/v4.6.0.js"></script>
-    <!-- <script src="https://courier-components-xvdza5.s3.amazonaws.com/v4.7.0.js"></script> -->
+    <!-- <script src="http://localhost:9000/v4.6.0.js"></script> -->
+    <script src="https://courier-components-xvdza5.s3.amazonaws.com/v4.8.0.js"></script>
     <script type="text/javascript">
       const form = document.getElementById("form-data");
 
@@ -263,11 +267,21 @@
         e.preventDefault();
         const data = getFormData(e);
         const tenantId = data.get("tenantId");
-        window.courier.init({
+        const config = {
           clientKey: data.get("clientKey"),
           userId: data.get("userId"),
           tenantId: tenantId.length ? tenantId : undefined,
+        };
+        const url = new URL(window.location);
+        Object.entries(config).forEach(([key, value]) => {
+          if (value && value.length) {
+            url.searchParams.set(key, value);
+          } else {
+            url.searchParams.delete(key);
+          }
         });
+        window.history.pushState(null, "", url.toString());
+        window.courier.init(config);
       });
 
       const update_button = document.getElementById("button-update");
@@ -303,6 +317,15 @@
           editor.session.setMode("ace/mode/javascript");
           if (key !== "update") {
             editor.setReadOnly(true);
+          }
+        }
+      });
+      ["clientKey", "tenantId", "userId"].forEach((key) => {
+        const value = new URL(window.location).searchParams.get(key);
+        if (value) {
+          const input = document.querySelector(`input[name="${key}"]`);
+          if (input && value) {
+            input.value = value;
           }
         }
       });
