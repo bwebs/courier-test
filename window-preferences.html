@@ -1,67 +1,311 @@
 <html>
+  <head>
+    <title>Courier - Preference Page</title>
+    <script src="https://cdn.jsdelivr.net/npm/ace-builds@1.32.0/src-min-noconflict/ace.min.js"></script>
+    <link
+      href="https://cdn.jsdelivr.net/npm/ace-builds@1.32.0/css/ace.min.css"
+      rel="stylesheet"
+    />
+    <script>
+      window.getFormData = (e) => {
+        const form = document.getElementById("form-data");
+        const data = new FormData(e ? e.currentTarget : form);
+        return data;
+      };
 
-<head>
-  <style>
-#code-container {
-  background: lightgrey;
-  height: 500px;
-  width: 500px;
-}
-label {
-  display: inline-block;
-  width: 150px;
-  text-align: right;
-}
-  </style>
-</head>
+      const setPreferencesBlock = (key, payload) => {
+        var editor = ace.edit(`editor-${key}`);
+        if (editor) {
+          editor.session.setValue(JSON.stringify(payload.payload, null, 2));
+        }
+      };
 
-<body>
-  <p><i>Add <span id="curr"></span> to the list of Approved Domains on your <a href="https://app.courier.com/integrations/catalog/courier">Courier integration</a> page.
+      window.courierAsyncInit = () => {
+        console.log("Courier loaded!");
+        window.courier.on("*", (payload) => console.log(payload));
+        window.courier.on(
+          "preferences/FETCH_PREFERENCE_PAGE/DONE",
+          (payload) => {
+            setPreferencesBlock("page", payload);
+          }
+        );
+        window.courier.on(
+          "preferences/FETCH_RECIPIENT_PREFERENCES/DONE",
+          (payload) => {
+            setPreferencesBlock("recipient", payload);
+            const updateableItems = document.getElementById("updateable-items");
+            if (updateableItems) {
+              updateableItems.innerHTML = "";
+              if (payload["payload"] && Array.isArray(payload["payload"])) {
+                const label = document.createElement("label");
+                label.innerHTML = "Topics: ";
+                updateableItems.appendChild(label);
+                payload["payload"].forEach((item, i) => {
+                  const p = document.createElement("p");
+                  p.innerHTML = String(i + 1);
+                  p.onclick = (e) => {
+                    const editor = ace.edit(`editor-update`);
+                    if (editor) {
+                      const form_data = window.getFormData();
+                      const tenantId = form_data.get("tenantId");
+                      const updateable = Object.entries(item).reduce(
+                        (p, [k, v], i) => {
+                          if (k !== "__typename" && Boolean(v)) {
+                            p[k] = item[k];
+                          }
+                          return p;
+                        },
+                        {
+                          tenantId: (tenantId && tenantId.length) ? tenantId : undefined,
+                          status: "OPTED_IN",
+                          hasCustomRouting: false,
+                          digestSchedule: "",
+                        }
+                      );
+                      editor.session.setValue(
+                        JSON.stringify(updateable, null, 2)
+                      );
+                    }
+                  };
+                  updateableItems.appendChild(p);
+                });
+              }
+            }
+          }
+        );
+        window.courier.on(
+          "preferences/UPDATE_RECIPIENT_PREFERENCES/DONE",
+          () => {
+            const data = getFormData();
+            if (window.refresh_preferences_page) {
+              window.courier.init({
+                clientKey: data.get("clientKey"),
+                userId: data.get("userId"),
+                tenantId: data.get("tenantId"),
+              });
+            } else {
+              window.courier.preferences.fetchRecipientPreferences();
+              window.courier.preferences.fetchPreferencePage();
+            }
+            window.refresh_preferences_page = false;
+          }
+        );
+      };
+    </script>
+    <style>
+      html,
+      body {
+        margin: 0;
+      }
+      body {
+        padding: 1rem;
+      }
+      button {
+        background-color: #9121C2;
+        border: none;
+        padding: 0.5rem;
+        cursor: pointer;
+        border-radius: 0.25rem;
+        width: 150px;
+        color: white;
+      }
+      button:hover {
+        -webkit-filter: brightness(90%);
+        -webkit-transition: all 0.5 ease;
+        -moz-transition: all 0.5 ease;
+        -o-transition: all 0.5 ease;
+        -ms-transition: all 0.5 ease;
+        transition: all 0.5 ease;
+      }
+      #preference-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        flex-grow: 1;
+        width: 100%;
+        gap: 0.5rem;
+        border: 1px solid black;
+        padding-bottom: 1rem;
+      }
+
+      #code-container {
+        display: grid;
+        grid-template-rows: 1fr 1fr 1fr;
+        min-height: 300px;
+        width: 100%;
+        gap: 0.5rem;
+      }
+      #code-container > div {
+        margin-bottom: 1rem;
+      }
+      .ace_editor {
+        height: 100%;
+        width: 100%;
+      }
+      .form-label {
+        display: inline-block;
+        width: 150px;
+        text-align: right;
+      }
+      #updateable-items {
+        display: flex;
+        gap: 4px;
+      }
+      #updateable-items > p {
+        text-decoration: underline;
+        cursor: pointer;
+        margin: 0;
+      }
+      .column {
+        display: flex;
+        flex-direction: column;
+      }
+      #courier-preferences-container {
+        flex-grow: 1;
+      }
+      #courier-preferences-container > courier-preferences > div {
+        height: 100%;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="column" style="height: 100%">
+      <div>
+        <h3>Courier - User Preference Tester</h3>
+        <p>
+          This is tool to help understand Courier's Preference
+          <a
+            href="https://github.com/trycourier/courier-react/tree/main/packages/components"
+            >component</a
+          >
+          and its APIs. You can choose to use
+          <code>&ltcourier-preferences&gt&lt/courier-preferences&gt</code> or
+          build on top of our API's with fetchPreferencePage,
+          fetchRecipientPreferences and updateRecipientPreferences
+        </p>
+        <p>
+          <i
+            >Either add <span id="curr"></span> to the list of Approved Domains
+            on your
+            <a href="https://app.courier.com/integrations/catalog/courier"
+              >Courier integration</a
+            >
+            page or remove all Approved Domains. This will not work properly if
+            you have HMAC or JWT turned on for the Client Key.
+          </i>
+        </p>
+        <p>
+          This page is for demonstration and debugging purposes only, consider using
+          <a href="https://www.courier.com/docs/platform/inbox/authentication/"
+            >JWT or HMAC</a
+          >
+          for production
+        </p>
+      </div>
       <form id="form-data">
         <div>
-          <label>Client Key</label>
-          <input name="clientKey">
+          <label class="form-label">Client Key</label>
+          <input
+            name="clientKey"
+            value="N2NmZTM1NzQtNzVkOC00NDNmLTg5MmMtYjI2MTBmMWM5MTk3"
+          />
         </div>
         <div>
-          <label>User ID</label>
-          <input name="userId">
+          <label class="form-label">User ID</label>
+          <input name="userId" value="test" />
         </div>
         <div>
-          <label>Tenant ID (Optional)</label>
-          <input name="tenantId">
+          <label class="form-label">Tenant ID (Optional)</label>
+          <input name="tenantId" />
         </div>
-        <button type="submit">Get Preferences</button>
+        <div>
+          <label class="form-label"></label>
+          <button type="submit">Get Preferences</button>
+        </div>
       </form>
-      <div>
-        <label>Preferences</label><br>
+      <div id="preference-container">
+        <div id="code-container">
+          <div>
+            <div>
+              <label>fetchRecipientPreferences</label>
+            </div>
+            <div id="editor-recipient"></div>
+          </div>
+          <div>
+            <label>fetchPreferencePage</label>
+            <div id="editor-page"></div>
+          </div>
+          <div>
+            <div
+              style="display: flex; gap: 4px; justify-content: space-between"
+            >
+              <label>updateRecipientPreferences</label>
+              <div id="updateable-items"></div>
+              <button id="button-update">Update</button>
+            </div>
+            <div id="editor-update"></div>
+          </div>
+        </div>
+        <div class="column">
+          <label>&ltcourier-preferences&gt&lt/courier-preferences&gt</label>
+          <div id="courier-preferences-container">
+            <courier-preferences></courier-preferences>
+          </div>
+        </div>
       </div>
+    </div>
+    <script src="http://localhost:9000/v4.6.0.js"></script>
+    <!-- <script src="https://courier-components-xvdza5.s3.amazonaws.com/v4.7.0.js"></script> -->
+    <script type="text/javascript">
+      const form = document.getElementById("form-data");
 
-      <div id="code-container">
-        <code id="code-block" />
-      </div>
-      <script src="https://courier-components-xvdza5.s3.amazonaws.com/v4.6.0.js"></script>
-      <script>
-    const form = document.getElementById("form-data");
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const data = getFormData(e);
+        const tenantId = data.get("tenantId");
+        window.courier.init({
+          clientKey: data.get("clientKey"),
+          userId: data.get("userId"),
+          tenantId: tenantId.length ? tenantId : undefined,
+        });
+      });
 
-form.addEventListener("submit", async function (e) {
-  e.preventDefault();
-  const data = new FormData(e.currentTarget);
-  const config = {
-    clientKey: data.get("clientKey"),
-    userId: data.get("userId")
-  };
-  console.log({ config });
-  await window.courier.init(config);
-  console.log(window.courier);
-  const recipient_pref = await window.courier.preferences.fetchPreferencePage();
-  console.log({ recipient_pref });
-});
+      const update_button = document.getElementById("button-update");
+      update_button.addEventListener("click", (e) => {
+        e.preventDefault();
+        window.refresh_preferences_page = true;
+        try {
+          window.courier.preferences.updateRecipientPreferences(
+            JSON.parse(ace.edit(`editor-update`).getValue())
+          );
+          const pref_container = document.getElementById(
+            "courier-preferences-container"
+          );
+          if (pref_container) {
+            pref_container.innerHTML = "";
+            const new_pref_container = document.createElement(
+              "courier-preferences"
+            );
+            pref_container.appendChild(new_pref_container);
+          }
+        } catch (e) {
+          console.log(e);
+        }
+      });
 
-addEventListener("load", (event) => {
-  const s = document.getElementById("curr");
-  curr.innerHTML = window.location.origin;
-});
-
-  </script>
-</body>
+      addEventListener("load", (event) => {
+        const s = document.getElementById("curr");
+        curr.innerHTML = window.location.origin;
+      });
+      ["recipient", "page", "update"].forEach((key) => {
+        var editor = ace.edit(`editor-${key}`);
+        if (editor) {
+          editor.session.setMode("ace/mode/javascript");
+          if (key !== "update") {
+            editor.setReadOnly(true);
+          }
+        }
+      });
+    </script>
+  </body>
 </html>
