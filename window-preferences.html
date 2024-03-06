@@ -1,334 +1,379 @@
 <html>
-  <head>
-    <title>Courier - Preference Page</title>
-    <script src="https://cdn.jsdelivr.net/npm/ace-builds@1.32.0/src-min-noconflict/ace.min.js"></script>
-    <link
-      href="https://cdn.jsdelivr.net/npm/ace-builds@1.32.0/css/ace.min.css"
-      rel="stylesheet"
-    />
-    <script>
-      window.getFormData = (e) => {
-        const form = document.getElementById("form-data");
-        const data = new FormData(e ? e.currentTarget : form);
-        return data;
-      };
+    <head>
+        <title>Courier - Preference Page</title>
+        <script src="https://cdn.jsdelivr.net/npm/ace-builds@1.32.0/src-min-noconflict/ace.min.js"></script>
+        <link
+            href="https://cdn.jsdelivr.net/npm/ace-builds@1.32.0/css/ace.min.css"
+            rel="stylesheet"
+        />
+        <script>
+            window.getFormData = (e) => {
+                const form = document.getElementById('form-data');
+                const data = new FormData(e ? e.currentTarget : form);
+                return data;
+            };
 
-      const setPreferencesBlock = (key, payload) => {
-        var editor = ace.edit(`editor-${key}`);
-        if (editor) {
-          editor.session.setValue(JSON.stringify(payload.payload, null, 2));
-        }
-      };
+            const setPreferencesBlock = (key, payload) => {
+                var editor = ace.edit(`editor-${key}`);
+                if (editor) {
+                    editor.session.setValue(
+                        JSON.stringify(payload.payload, null, 2)
+                    );
+                }
+            };
 
-      window.courierAsyncInit = () => {
-        console.log("Courier loaded!");
-        window.courier.on("*", (payload) => console.log(payload));
-        window.courier.on(
-          "preferences/fetch_preference_page/done",
-          (payload) => {
-            setPreferencesBlock("page", payload);
-          }
-        );
-        window.courier.on(
-          "preferences/fetch_recipient_preferences/done",
-          (payload) => {
-            setPreferencesBlock("recipient", payload);
-            const updateableItems = document.getElementById("updateable-items");
-            if (updateableItems) {
-              updateableItems.innerHTML = "";
-              if (payload["payload"] && Array.isArray(payload["payload"])) {
-                const label = document.createElement("label");
-                label.innerHTML = "Topics: ";
-                updateableItems.appendChild(label);
-                payload["payload"].forEach((item, i) => {
-                  const p = document.createElement("p");
-                  p.innerHTML = String(i + 1);
-                  p.onclick = (e) => {
-                    const editor = ace.edit(`editor-update`);
-                    if (editor) {
-                      const form_data = window.getFormData();
-                      const tenantId = form_data.get("tenantId");
-                      const updateable = Object.entries(item).reduce(
-                        (p, [k, v], i) => {
-                          if (k !== "__typename" && Boolean(v)) {
-                            p[k] = item[k];
-                          }
-                          return p;
-                        },
-                        {
-                          tenantId:
-                            tenantId && tenantId.length ? tenantId : undefined,
-                          status: "OPTED_IN",
-                          hasCustomRouting: false,
-                          digestSchedule: "",
-                        }
-                      );
-                      editor.session.setValue(
-                        JSON.stringify(updateable, null, 2)
-                      );
+            window.courierAsyncInit = () => {
+                console.log('Courier loaded!');
+                window.courier.on('*', (payload) => console.log(payload));
+                window.courier.on(
+                    'preferences/fetch_preference_page/done',
+                    (payload) => {
+                        setPreferencesBlock('page', payload);
                     }
-                  };
-                  updateableItems.appendChild(p);
-                });
-              }
+                );
+                window.courier.on(
+                    'preferences/fetch_recipient_preferences/done',
+                    (payload) => {
+                        setPreferencesBlock('recipient', payload);
+                        const updateableItems =
+                            document.getElementById('updateable-items');
+                        if (updateableItems) {
+                            updateableItems.innerHTML = '';
+                            if (
+                                payload['payload'] &&
+                                Array.isArray(payload['payload'])
+                            ) {
+                                const label = document.createElement('label');
+                                label.innerHTML = 'Topics: ';
+                                updateableItems.appendChild(label);
+                                payload['payload'].forEach((item, i) => {
+                                    const p = document.createElement('p');
+                                    p.innerHTML = String(i + 1);
+                                    p.onclick = (e) => {
+                                        const editor =
+                                            ace.edit(`editor-update`);
+                                        if (editor) {
+                                            const form_data =
+                                                window.getFormData();
+                                            const tenantId =
+                                                form_data.get('tenantId');
+                                            const updateable = Object.entries(
+                                                item
+                                            ).reduce(
+                                                (p, [k, v], i) => {
+                                                    if (
+                                                        k !== '__typename' &&
+                                                        Boolean(v)
+                                                    ) {
+                                                        p[k] = item[k];
+                                                    }
+                                                    return p;
+                                                },
+                                                {
+                                                    tenantId:
+                                                        tenantId &&
+                                                        tenantId.length
+                                                            ? tenantId
+                                                            : undefined,
+                                                    status: 'OPTED_IN',
+                                                    hasCustomRouting: false,
+                                                    digestSchedule: '',
+                                                }
+                                            );
+                                            editor.session.setValue(
+                                                JSON.stringify(
+                                                    updateable,
+                                                    null,
+                                                    2
+                                                )
+                                            );
+                                        }
+                                    };
+                                    updateableItems.appendChild(p);
+                                });
+                            }
+                        }
+                    }
+                );
+                window.courier.on(
+                    'preferences/update_recipient_preferences/done',
+                    () => {
+                        const data = getFormData();
+                        const tenantId = data.get('tenantId');
+                        if (window.refresh_preferences_page) {
+                            window.courier.init({
+                                clientKey: data.get('clientKey'),
+                                userId: data.get('userId'),
+                                tenantId:
+                                    tenantId && tenantId.length
+                                        ? tenantId
+                                        : undefined,
+                            });
+                        } else {
+                            window.courier.preferences.fetchRecipientPreferences(
+                                tenantId && tenantId.length
+                                    ? tenantId
+                                    : undefined
+                            );
+                            // TODO - include draft preferences
+                            window.courier.preferences.fetchPreferencePage(
+                                tenantId && tenantId.length
+                                    ? tenantId
+                                    : undefined
+                            );
+                        }
+                        window.refresh_preferences_page = false;
+                    }
+                );
+            };
+        </script>
+        <style>
+            html,
+            body {
+                margin: 0;
             }
-          }
-        );
-        window.courier.on(
-          "preferences/update_recipient_preferences/done",
-          () => {
-            const data = getFormData();
-            const tenantId = data.get("tenantId");
-            if (window.refresh_preferences_page) {
-              window.courier.init({
-                clientKey: data.get("clientKey"),
-                userId: data.get("userId"),
-                tenantId: tenantId && tenantId.length ? tenantId : undefined,
-              });
-            } else {
-              window.courier.preferences.fetchRecipientPreferences(tenantId && tenantId.length ? tenantId : undefined);
-              // TODO - include draft preferences
-              window.courier.preferences.fetchPreferencePage(tenantId && tenantId.length ? tenantId : undefined);
+            body {
+                padding: 1rem;
             }
-            window.refresh_preferences_page = false;
-          }
-        );
-      };
-    </script>
-    <style>
-      html,
-      body {
-        margin: 0;
-      }
-      body {
-        padding: 1rem;
-      }
-      button {
-        background-color: #9121c2;
-        border: none;
-        padding: 0.5rem;
-        cursor: pointer;
-        border-radius: 0.25rem;
-        width: 150px;
-        color: white;
-      }
-      button:hover {
-        -webkit-filter: brightness(90%);
-        -webkit-transition: all 0.5 ease;
-        -moz-transition: all 0.5 ease;
-        -o-transition: all 0.5 ease;
-        -ms-transition: all 0.5 ease;
-        transition: all 0.5 ease;
-      }
-      #preference-container {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        flex-grow: 1;
-        width: 100%;
-        gap: 0.5rem;
-        border: 1px solid black;
-        padding-bottom: 1rem;
-      }
+            button {
+                background-color: #9121c2;
+                border: none;
+                padding: 0.5rem;
+                cursor: pointer;
+                border-radius: 0.25rem;
+                width: 150px;
+                color: white;
+            }
+            button:hover {
+                -webkit-filter: brightness(90%);
+                -webkit-transition: all 0.5 ease;
+                -moz-transition: all 0.5 ease;
+                -o-transition: all 0.5 ease;
+                -ms-transition: all 0.5 ease;
+                transition: all 0.5 ease;
+            }
+            #preference-container {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                flex-grow: 1;
+                width: 100%;
+                gap: 0.5rem;
+                border: 1px solid black;
+                padding-bottom: 1rem;
+            }
 
-      #code-container {
-        display: grid;
-        grid-template-rows: 1fr 1fr 1fr;
-        min-height: 300px;
-        width: 100%;
-        gap: 0.5rem;
-      }
-      #code-container > div {
-        margin-bottom: 1rem;
-      }
-      .ace_editor {
-        height: 100%;
-        width: 100%;
-      }
-      .form-label {
-        display: inline-block;
-        width: 150px;
-        text-align: right;
-      }
-      #updateable-items {
-        display: flex;
-        gap: 4px;
-      }
-      #updateable-items > p {
-        text-decoration: underline;
-        cursor: pointer;
-        margin: 0;
-      }
-      .column {
-        display: flex;
-        flex-direction: column;
-      }
-      #courier-preferences-container {
-        flex-grow: 1;
-      }
-      #courier-preferences-container > courier-preferences > div {
-        height: 100%;
-      }
-    </style>
-  </head>
+            #code-container {
+                display: grid;
+                grid-template-rows: 1fr 1fr 1fr;
+                min-height: 300px;
+                width: 100%;
+                gap: 0.5rem;
+            }
+            #code-container > div {
+                margin-bottom: 1rem;
+            }
+            .ace_editor {
+                height: 100%;
+                width: 100%;
+            }
+            .form-label {
+                display: inline-block;
+                width: 150px;
+                text-align: right;
+            }
+            #updateable-items {
+                display: flex;
+                gap: 4px;
+            }
+            #updateable-items > p {
+                text-decoration: underline;
+                cursor: pointer;
+                margin: 0;
+            }
+            .column {
+                display: flex;
+                flex-direction: column;
+            }
+            #courier-preferences-container {
+                flex-grow: 1;
+            }
+            #courier-preferences-container > courier-preferences > div {
+                height: 100%;
+            }
+        </style>
+    </head>
 
-  <body>
-    <div class="column" style="height: 100%">
-      <div>
-        <h3>Courier - User Preference Tester</h3>
-        <p>
-          This is tool to help understand Courier's Preference
-          <a
-            href="https://github.com/trycourier/courier-react/tree/main/packages/components"
-            >component</a
-          >
-          and its APIs. You can choose to use
-          <code>&ltcourier-preferences&gt&lt/courier-preferences&gt</code> or
-          build on top of our API's with fetchPreferencePage,
-          fetchRecipientPreferences and updateRecipientPreferences
-        </p>
-        <p>
-          <i
-            >Either add <span id="curr"></span> to the list of Approved Domains
-            on your
-            <a href="https://app.courier.com/integrations/catalog/courier"
-              >Courier integration</a
-            >
-            page or remove all Approved Domains. This will not work properly if
-            you have HMAC or JWT turned on for the Client Key.
-          </i>
-        </p>
-        <p>
-          This page is for demonstration and debugging purposes only, consider
-          using
-          <a href="https://www.courier.com/docs/platform/inbox/authentication/"
-            >JWT or HMAC</a
-          >
-          for production
-        </p>
-      </div>
-      <form id="form-data">
-        <div>
-          <label class="form-label">Client Key</label>
-          <input
-            name="clientKey"
-            placeholder="N2NmZTM1NzQtNzVkOC00..."
-          />
-        </div>
-        <div>
-          <label class="form-label">User ID</label>
-          <input name="userId" palceholder="test" />
-        </div>
-        <div>
-          <label class="form-label">Tenant ID (Optional)</label>
-          <input name="tenantId" />
-        </div>
-        <div>
-          <label class="form-label"></label>
-          <button type="submit">Get Preferences</button>
-        </div>
-      </form>
-      <div id="preference-container">
-        <div id="code-container">
-          <div>
+    <body>
+        <div class="column" style="height: 100%">
             <div>
-              <label>fetchRecipientPreferences</label>
+                <h3>Courier - User Preference Tester</h3>
+                <p>
+                    This is tool to help understand Courier's Preference
+                    <a
+                        href="https://github.com/trycourier/courier-react/tree/main/packages/components"
+                        >component</a
+                    >
+                    and its APIs. You can choose to use
+                    <code
+                        >&ltcourier-preferences&gt&lt/courier-preferences&gt</code
+                    >
+                    or build on top of our API's with fetchPreferencePage,
+                    fetchRecipientPreferences and updateRecipientPreferences
+                </p>
+                <p>
+                    <i
+                        >Either add <span id="curr"></span> to the list of
+                        Approved Domains on your
+                        <a
+                            href="https://app.courier.com/integrations/catalog/courier"
+                            >Courier integration</a
+                        >
+                        page or remove all Approved Domains. This will not work
+                        properly if you have HMAC or JWT turned on for the
+                        Client Key.
+                    </i>
+                </p>
+                <p>
+                    This page is for demonstration and debugging purposes only,
+                    consider using
+                    <a
+                        href="https://www.courier.com/docs/platform/inbox/authentication/"
+                        >JWT or HMAC</a
+                    >
+                    for production
+                </p>
             </div>
-            <div id="editor-recipient"></div>
-          </div>
-          <div>
-            <label>fetchPreferencePage</label>
-            <div id="editor-page"></div>
-          </div>
-          <div>
-            <div
-              style="display: flex; gap: 4px; justify-content: space-between"
-            >
-              <label>updateRecipientPreferences</label>
-              <div id="updateable-items"></div>
-              <button id="button-update">Update</button>
+            <form id="form-data">
+                <div>
+                    <label class="form-label">Client Key</label>
+                    <input
+                        name="clientKey"
+                        placeholder="N2NmZTM1NzQtNzVkOC00..."
+                    />
+                </div>
+                <div>
+                    <label class="form-label">User ID</label>
+                    <input name="userId" palceholder="test" />
+                </div>
+                <div>
+                    <label class="form-label">Tenant ID (Optional)</label>
+                    <input name="tenantId" />
+                </div>
+                <div>
+                    <label class="form-label"></label>
+                    <button type="submit">Get Preferences</button>
+                </div>
+            </form>
+            <div id="preference-container">
+                <div id="code-container">
+                    <div>
+                        <div>
+                            <label>fetchRecipientPreferences</label>
+                        </div>
+                        <div id="editor-recipient"></div>
+                    </div>
+                    <div>
+                        <label>fetchPreferencePage</label>
+                        <div id="editor-page"></div>
+                    </div>
+                    <div>
+                        <div
+                            style="
+                                display: flex;
+                                gap: 4px;
+                                justify-content: space-between;
+                            "
+                        >
+                            <label>updateRecipientPreferences</label>
+                            <div id="updateable-items"></div>
+                            <button id="button-update">Update</button>
+                        </div>
+                        <div id="editor-update"></div>
+                    </div>
+                </div>
+                <div class="column">
+                    <label
+                        >&ltcourier-preferences&gt&lt/courier-preferences&gt</label
+                    >
+                    <div id="courier-preferences-container">
+                        <courier-preferences></courier-preferences>
+                    </div>
+                </div>
             </div>
-            <div id="editor-update"></div>
-          </div>
         </div>
-        <div class="column">
-          <label>&ltcourier-preferences&gt&lt/courier-preferences&gt</label>
-          <div id="courier-preferences-container">
-            <courier-preferences></courier-preferences>
-          </div>
-        </div>
-      </div>
-    </div>
-    <!-- <script src="http://localhost:9000/v4.6.0.js"></script> -->
-    <script src="https://courier-components-xvdza5.s3.amazonaws.com/v4.8.0.js"></script>
-    <script type="text/javascript">
-      const form = document.getElementById("form-data");
+        <!-- <script src="http://localhost:9000/v4.6.0.js"></script> -->
+        <script src="https://components.courier.com/v5.0.0.js"></script>
+        <script type="text/javascript">
+            const form = document.getElementById('form-data');
 
-      form.addEventListener("submit", (e) => {
-        e.preventDefault();
-        const data = getFormData(e);
-        const tenantId = data.get("tenantId");
-        const config = {
-          clientKey: data.get("clientKey"),
-          userId: data.get("userId"),
-          tenantId: tenantId.length ? tenantId : undefined,
-        };
-        const url = new URL(window.location);
-        Object.entries(config).forEach(([key, value]) => {
-          if (value && value.length) {
-            url.searchParams.set(key, value);
-          } else {
-            url.searchParams.delete(key);
-          }
-        });
-        window.history.pushState(null, "", url.toString());
-        window.courier.init(config);
-      });
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const data = getFormData(e);
+                const tenantId = data.get('tenantId');
+                const config = {
+                    clientKey: data.get('clientKey'),
+                    userId: data.get('userId'),
+                    tenantId: tenantId.length ? tenantId : undefined,
+                };
+                const url = new URL(window.location);
+                Object.entries(config).forEach(([key, value]) => {
+                    if (value && value.length) {
+                        url.searchParams.set(key, value);
+                    } else {
+                        url.searchParams.delete(key);
+                    }
+                });
+                window.history.pushState(null, '', url.toString());
+                window.courier.init(config);
+            });
 
-      const update_button = document.getElementById("button-update");
-      update_button.addEventListener("click", (e) => {
-        e.preventDefault();
-        window.refresh_preferences_page = true;
-        try {
-          window.courier.preferences.updateRecipientPreferences(
-            JSON.parse(ace.edit(`editor-update`).getValue())
-          );
-          const pref_container = document.getElementById(
-            "courier-preferences-container"
-          );
-          if (pref_container) {
-            pref_container.innerHTML = "";
-            const new_pref_container = document.createElement(
-              "courier-preferences"
-            );
-            pref_container.appendChild(new_pref_container);
-          }
-        } catch (e) {
-          console.log(e);
-        }
-      });
+            const update_button = document.getElementById('button-update');
+            update_button.addEventListener('click', (e) => {
+                e.preventDefault();
+                window.refresh_preferences_page = true;
+                try {
+                    window.courier.preferences.updateRecipientPreferences(
+                        JSON.parse(ace.edit(`editor-update`).getValue())
+                    );
+                    const pref_container = document.getElementById(
+                        'courier-preferences-container'
+                    );
+                    if (pref_container) {
+                        pref_container.innerHTML = '';
+                        const new_pref_container = document.createElement(
+                            'courier-preferences'
+                        );
+                        pref_container.appendChild(new_pref_container);
+                    }
+                } catch (e) {
+                    console.log(e);
+                }
+            });
 
-      addEventListener("load", (event) => {
-        const s = document.getElementById("curr");
-        curr.innerHTML = window.location.origin;
-      });
-      ["recipient", "page", "update"].forEach((key) => {
-        var editor = ace.edit(`editor-${key}`);
-        if (editor) {
-          editor.session.setMode("ace/mode/javascript");
-          if (key !== "update") {
-            editor.setReadOnly(true);
-          }
-        }
-      });
-      ["clientKey", "tenantId", "userId"].forEach((key) => {
-        const value = new URL(window.location).searchParams.get(key);
-        if (value) {
-          const input = document.querySelector(`input[name="${key}"]`);
-          if (input && value) {
-            input.value = value;
-          }
-        }
-      });
-    </script>
-  </body>
+            addEventListener('load', (event) => {
+                const s = document.getElementById('curr');
+                curr.innerHTML = window.location.origin;
+            });
+            ['recipient', 'page', 'update'].forEach((key) => {
+                var editor = ace.edit(`editor-${key}`);
+                if (editor) {
+                    editor.session.setMode('ace/mode/javascript');
+                    if (key !== 'update') {
+                        editor.setReadOnly(true);
+                    }
+                }
+            });
+            ['clientKey', 'tenantId', 'userId'].forEach((key) => {
+                const value = new URL(window.location).searchParams.get(key);
+                if (value) {
+                    const input = document.querySelector(
+                        `input[name="${key}"]`
+                    );
+                    if (input && value) {
+                        input.value = value;
+                    }
+                }
+            });
+        </script>
+    </body>
 </html>
