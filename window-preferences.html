@@ -21,10 +21,10 @@
                     );
                 }
             };
-
             window.courierAsyncInit = () => {
                 console.log('Courier loaded!');
                 window.courier.on('*', (payload) => console.log(payload));
+
                 window.courier.on(
                     'preferences/fetch_preference_page/done',
                     (payload) => {
@@ -302,7 +302,7 @@
             </div>
         </div>
         <!-- <script src="http://localhost:9000/v4.6.0.js"></script> -->
-        <script src="https://components.courier.com/v6.3.3.js"></script>
+        <script src="https://components.courier.com/v6.4.1.js"></script>
         <script type="text/javascript">
             const form = document.getElementById('form-data');
 
@@ -325,6 +325,7 @@
                 });
                 window.history.pushState(null, '', url.toString());
                 window.courier.init(config);
+                window.courierAsyncInit();
             });
 
             const update_button = document.getElementById('button-update');
